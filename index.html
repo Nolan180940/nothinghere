@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nolan · Data Science</title>
+  <meta name="description" content="AI lover" />
+  <!-- p5.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.3/lib/p5.min.js"></script>
+  <style>
+    :root{
+      --bg:#0a0b12;      /* 背景深色 */
+      --fg:#e9edf7;      /* 文字主色 */
+      --muted:#9aa4bf;   /* 次要文字 */
+      --card:#10121c;    /* 卡片背景 */
+      --glass:rgba(16,18,28,.55);
+      --border:rgba(255,255,255,.08);
+      --accent:#7aa2ff;  /* 主色调（蓝） */
+      --accent2:#9c6bff; /* 次色调（紫） */
+      --accent3:#27ffd2; /* 辅助（青） */
+      --radius:22px;
+      --shadow:0 10px 30px rgba(0,0,0,.45);
+    }
+
+    html,body{
+      height:100%;
+      margin:0;
+      color:var(--fg);
+      background:var(--bg);
+      font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      line-height:1.6;
+    }
+    /* 背景画布 */
+    #sketch-holder{
+      position:fixed; inset:0; z-index:-1; background:var(--bg);
+    }
+
+    /* 页面布局 */
+    .wrap{ max-width:1100px; margin:0 auto; padding:24px; }
+
+    header{
+      position:sticky; top:0; z-index:10;
+      backdrop-filter: blur(10px);
+      background:linear-gradient(to bottom, rgba(10,11,18,.65), rgba(10,11,18,.25));
+      border-bottom:1px solid var(--border);
+    }
+    .nav{
+      display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 0;
+    }
+    .brand{ display:flex; align-items:center; gap:14px; font-weight:700; letter-spacing:.3px; }
+    .brand .dot{ width:12px; height:12px; border-radius:50%; background: radial-gradient(circle at 30% 30%, var(--accent3), var(--accent)); box-shadow:0 0 18px var(--accent3); }
+
+    .links a{
+      color:var(--fg); text-decoration:none; margin-left:14px; font-weight:600; opacity:.9;
+      border-bottom:2px solid transparent; padding-bottom:2px; transition:.2s;
+    }
+    .links a:hover{ border-color:var(--accent); color:white; }
+
+    .hero{
+      display:grid; grid-template-columns: 1.1fr .9fr; gap:22px; padding:42px 0 26px;
+    }
+    @media (max-width: 880px){ .hero{ grid-template-columns: 1fr; } }
+
+    .card{
+      background:var(--glass); border:1px solid var(--border); border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .card-inner{ padding:24px; }
+
+    .hero h1{ font-size: clamp(28px, 4vw, 50px); margin:0 0 10px; line-height:1.18; }
+    .grad{ background: linear-gradient(92deg, var(--accent), var(--accent2), var(--accent3)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+
+    .badges{ display:flex; gap:10px; flex-wrap:wrap; margin:14px 0 6px; }
+    .badge{ padding:6px 10px; border-radius: 999px; background: rgba(122,162,255,.15); border:1px solid rgba(122,162,255,.25); font-size: 12px; }
+
+    .cta{ display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; }
+    .btn{
+      display:inline-flex; align-items:center; gap:10px; text-decoration:none; font-weight:700;
+      padding:12px 16px; border-radius:14px; border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      box-shadow: var(--shadow);
+    }
+    .btn.primary{ border-color: transparent; background: linear-gradient(90deg, rgba(122,162,255,.9), rgba(156,107,255,.9)); color:#0b0d14; }
+    .btn:hover{ transform: translateY(-1px); }
+
+    .grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:18px; }
+    @media (max-width: 980px){ .grid{ grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 640px){ .grid{ grid-template-columns: 1fr; } }
+
+    .project{
+      position:relative; overflow:hidden;
+    }
+    .project .card-inner{ padding:18px; }
+    .project h3{ margin:0 0 8px; font-size: 18px; }
+    .project p{ margin: 0; color: var(--muted); font-size:14px; }
+    .chip{ position:absolute; right:10px; top:10px; font-size:11px; padding:5px 8px; border-radius:999px; color:#0b0d14; background:linear-gradient(90deg, var(--accent), var(--accent3)); }
+
+    .section{ margin: 18px 0 30px; }
+    footer{ color:var(--muted); padding:30px 0 40px; text-align:center; }
+
+    /* 小工具面板 */
+    .panel{
+      position: fixed; bottom:18px; right:18px; z-index: 20;
+      display:flex; gap:10px; flex-wrap:wrap;
+    }
+    .toggle{
+      background: var(--glass); border:1px solid var(--border); color:var(--fg);
+      border-radius: 12px; padding:10px 12px; cursor:pointer; font-weight:700; user-select:none;
+      box-shadow: var(--shadow);
+    }
+  </style>
+</head>
+<body>
+  <!-- 背景 p5 画布容器 -->
+  <div id="sketch-holder"></div>
+
+  <header>
+    <div class="wrap nav">
+      <div class="brand"><span class="dot"></span> Nolan · Data Science</div>
+      <nav class="links">
+        <a href="#about">About</a>
+        <a href="#skills">Skills</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <div class="card">
+        <div class="card-inner">
+          <h1>Hi, I'm <span class="grad">Nuo</span> ✨</h1>
+          <p>I work on <strong>Data Science</strong>, <strong>at New York University Shanghai</strong>. This is my personal homepage.</p>
+          <div class="badges">
+            <span class="badge">Windows-MCP</span>
+            <span class="badge">Cloud Drive</span>
+            <span class="badge">Vibe Coding</span>
+          </div>
+          <div class="cta">
+            <a class="btn primary" href="https://github.com/Nolan180940" target="_blank" rel="noreferrer">GitHub</a>
+            <a class="btn" href="#skills">View Skills</a>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-inner">
+          <h2 style="margin-top:0">About this site</h2>
+          <ul style="margin-top:10px; color:var(--muted)">
+            <li>Built with p5.js 2D effects: neon particles, Perlin flow field, and proximity links.</li>
+            <li>Responsive layout with glassmorphism cards.</li>
+            <li>Click anywhere to trigger particle bursts. Use toggles at the bottom-right.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="skills" class="section">
+      <h2 style="margin:10px 0 14px">Skills</h2>
+      <div class="grid">
+        <article class="card project">
+          <div class="chip">Programming</div>
+          <div class="card-inner">
+            <h3>Languages</h3>
+            <p>Python, HTML</p>
+          </div>
+        </article>
+        <article class="card project">
+          <div class="chip">Engineering</div>
+          <div class="card-inner">
+            <h3>Technical Skills</h3>
+            <p><a href="https://drive.google.com/file/d/1zOuWBZalTNI81wpZtl5805ycrZoTvn_z/view?usp=sharing" target="_blank" rel="noopener noreferrer">Resume:</a></p>
+          </div>
+        </article>
+        <article class="card project">
+          <div class="chip">Creative</div>
+          <div class="card-inner">
+            <h3>Other Skills</h3>
+            <p>Karting, basketball, Vibe Coding</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="about" class="section">
+      <div class="card"><div class="card-inner">
+        <h2 style="margin:0 0 8px">About</h2>
+        <p style="margin:0; color:var(--muted)">NYU / NYUSH · Data Science </p>
+      </div></div>
+    </section>
+
+    <section id="contact" class="section">
+      <div class="card"><div class="card-inner">
+        <h2 style="margin:0 0 8px">Contact</h2>
+        <p style="margin:0; color:var(--muted)">nx2138@nyu.edu</p>
+      </div></div>
+    </section>
+
+    <footer>© <span id="year"></span> Nuo Xu</footer>
+  </main>
+
+  <!-- 控制面板 -->
+  <div class="panel">
+    <div id="toggleTrails" class="toggle">Trails: ON</div>
+    <div id="toggleLinks" class="toggle">Links: ON</div>
+    <div id="toggleNoise" class="toggle">Flow Field: ON</div>
+  </div>
+
+  <script>
+    // ========= p5 2D 特效：霓虹粒子 + Perlin 流场 + 邻近连线 =========
+    let particles = [];
+    let flowScale = 0.0016;   // 噪声采样尺度
+    let flowSpeed = 0.25;     // 噪声时间推进速度
+    let trailsOn = true;      // 残影
+    let linksOn = true;       // 近邻连线
+    let noiseOn = true;       // 流场
+    let maxParticles = 220;   // 粒子数量（根据性能调整）
+
+    class Particle{
+      constructor(){ this.reset(true); }
+      reset(randomPos=false){
+        this.pos = randomPos ? createVector(random(width), random(height)) : this._spawnOffscreen();
+        this.vel = p5.Vector.random2D().mult(random(0.2,1.2));
+        this.acc = createVector(0,0);
+        this.size = random(1.3, 2.2);
+        this.hue = random([190, 250, 160]); // 蓝 / 紫 / 青
+        this.alpha = 200;
+      }
+      _spawnOffscreen(){
+        const m=40; const side = floor(random(4));
+        if(side===0) return createVector(random(width), -m);
+        if(side===1) return createVector(width+m, random(height));
+        if(side===2) return createVector(random(width), height+m);
+        return createVector(-m, random(height));
+      }
+      applyForce(f){ this.acc.add(f); }
+      update(){
+        // 鼠标交互：轻微吸引 + 近距离排斥
+        const mouse = createVector(mouseX, mouseY);
+        if(mouseX>=0 && mouseY>=0){
+          const dir = p5.Vector.sub(mouse, this.pos);
+          const d = dir.mag()+0.001;
+          dir.normalize();
+          const attract = dir.copy().mult(0.03 * constrain(1/d,0,1));
+          const repel = dir.copy().mult(-2.2).mult(1/(d*d+1e-3));
+          this.applyForce(attract);
+          if(d < 80) this.applyForce(repel);
+        }
+        // Perlin 噪声流场
+        if(noiseOn){
+          const n = noise(this.pos.x*flowScale, this.pos.y*flowScale, frameCount*flowSpeed*0.01);
+          const angle = n * TWO_PI * 2; // 多圈更灵动
+          const flow = p5.Vector.fromAngle(angle).mult(0.4);
+          this.applyForce(flow);
+        }
+        // 速度、位置更新 & 轻微阻尼
+        this.vel.add(this.acc); this.acc.mult(0);
+        this.vel.limit(2.3); this.pos.add(this.vel);
+        this.vel.mult(0.995);
+        // 边界回弹/回环
+        const margin = 30;
+        if(this.pos.x<-margin||this.pos.x>width+margin||this.pos.y<-margin||this.pos.y>height+margin){
+          this.reset();
+        }
+      }
+      draw(g){
+        const c = color(this.hue, 100, 100, this.alpha/255*100);
+        g.noStroke(); g.fill(c);
+        g.circle(this.pos.x, this.pos.y, this.size);
+      }
+    }
+
+    // 渐变光晕背景
+    function neonBackdrop(g){
+      g.noStroke();
+      // 轻微渐隐制造轨迹效果
+      if(trailsOn){
+        g.fill(10, 10, 18, 12); // 极低 alpha 的深色幕布
+        g.rect(0,0,width,height);
+      }else{
+        // 实时重绘背景渐变
+        const t = millis()*0.0002;
+        g.drawingContext.save();
+        const grd = g.drawingContext.createLinearGradient(0,0,width,height);
+        const c1 = g.color(122,162,255); const c2 = g.color(156,107,255); const c3 = g.color(39,255,210);
+        grd.addColorStop(0, c1.toString());
+        grd.addColorStop(0.55+0.1*Math.sin(t), c2.toString());
+        grd.addColorStop(1, c3.toString());
+        g.drawingContext.fillStyle = grd;
+        g.rect(0,0,width,height);
+        g.drawingContext.restore();
+        g.fill(10,10,18,80); g.rect(0,0,width,height); // 叠一层暗色增强对比
+      }
+    }
+
+    // 近邻连线（带发光）
+    function drawLinks(g){
+      const threshold = 80; // 距离阈值
+      for(let i=0;i<particles.length;i++){
+        const a = particles[i];
+        for(let j=i+1;j<particles.length;j++){
+          const b = particles[j];
+          const dx=a.pos.x-b.pos.x, dy=a.pos.y-b.pos.y; const d2 = dx*dx+dy*dy;
+          if(d2 < threshold*threshold){
+            const d = Math.sqrt(d2);
+            const w = map(d, 0, threshold, 1.8, 0.1);
+            const alp = map(d, 0, threshold, 90, 0);
+            g.stroke(180, 100, 100, alp);
+            g.strokeWeight(w);
+            g.line(a.pos.x, a.pos.y, b.pos.x, b.pos.y);
+          }
+        }
+      }
+    }
+
+    // p5 主流程
+    let pg; // 离屏图层（更柔和的发光叠加）
+    function setup(){
+      const holder = document.getElementById('sketch-holder');
+      const c = createCanvas(window.innerWidth, window.innerHeight);
+      c.parent(holder);
+      colorMode(HSB, 360, 100, 100, 100);
+      pg = createGraphics(width, height);
+      pg.colorMode(HSB, 360, 100, 100, 100);
+      for(let i=0;i<maxParticles;i++) particles.push(new Particle());
+      document.getElementById('year').textContent = new Date().getFullYear();
+      bindToggles();
+    }
+
+    function windowResized(){
+      resizeCanvas(window.innerWidth, window.innerHeight);
+      pg.resizeCanvas(width, height);
+    }
+
+    function draw(){
+      neonBackdrop(pg);
+      // 更新 & 绘制粒子
+      for(const p of particles){ p.update(); p.draw(pg); }
+      // 近邻连线叠加
+      if(linksOn) drawLinks(pg);
+      // 把离屏图层叠加到主画布（发光）
+      clear();
+      drawingContext.save();
+      drawingContext.globalCompositeOperation = 'screen';
+      image(pg, 0, 0, width, height);
+      drawingContext.restore();
+      // 鼠标指针高亮
+      if(mouseX>=0 && mouseY>=0){
+        noFill(); stroke(180, 20, 100, 70); strokeWeight(1.5);
+        circle(mouseX, mouseY, 18 + 6*Math.sin(frameCount*0.2));
+      }
+    }
+
+    function mousePressed(){
+      // 点击小爆发：在鼠标附近重置一批粒子
+      for(let k=0;k<16;k++){
+        const idx = floor(random(particles.length));
+        const p = particles[idx];
+        p.pos = createVector(mouseX + random(-15,15), mouseY + random(-15,15));
+        p.vel = p5.Vector.random2D().mult(random(1,3));
+      }
+    }
+
+    // UI 切换
+    function bindToggles(){
+      const t1 = document.getElementById('toggleTrails');
+      const t2 = document.getElementById('toggleLinks');
+      const t3 = document.getElementById('toggleNoise');
+      const set = (el, on) => el.textContent = el.textContent.replace(/(ON|OFF)$/g, on? 'ON':'OFF');
+      t1.onclick = ()=>{ trailsOn = !trailsOn; set(t1, trailsOn); };
+      t2.onclick = ()=>{ linksOn  = !linksOn;  set(t2, linksOn); };
+      t3.onclick = ()=>{ noiseOn  = !noiseOn;  set(t3, noiseOn); };
+    }
+  </script>
+</body>
+</html>
